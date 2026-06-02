@@ -1,0 +1,53 @@
+export const HIRAGANA_BASE = [
+  "あ",
+  "い",
+  "う",
+  "え",
+  "お",
+  "か",
+  "き",
+  "く",
+  "け",
+  "こ",
+  "さ",
+  "し",
+  "す",
+  "せ",
+  "そ",
+  "た",
+  "ち",
+  "つ",
+  "て",
+  "と",
+  "な",
+  "に",
+  "ぬ",
+  "ね",
+  "の",
+  "は",
+  "ひ",
+  "ふ",
+  "へ",
+  "ほ",
+  "ま",
+  "み",
+  "む",
+  "め",
+  "も",
+  "や",
+  "ゆ",
+  "よ",
+  "ら",
+  "り",
+  "る",
+  "れ",
+  "ろ",
+  "わ",
+] as const;
+
+export const MIN_WORD_LENGTH = 3;
+export const MAX_WORD_LENGTH = 6;
+export const DEFAULT_TARGET_SCORE = 5;
+export const VOTE_TIMEOUT_MS = 15_000;
+export const ROUND_TIMEOUT_MS = 60_000;
+export const ROUND_RESULT_MS = 3_000;

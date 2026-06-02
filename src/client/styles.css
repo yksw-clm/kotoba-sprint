@@ -1,0 +1,366 @@
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #252017;
+  background: #f5f1e7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(135deg, rgba(245, 241, 231, 0.96), rgba(236, 241, 236, 0.96)),
+    repeating-linear-gradient(90deg, rgba(38, 120, 110, 0.08) 0 1px, transparent 1px 18px);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+.appShell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+
+.phoneFrame {
+  width: min(100vw, 440px);
+  min-height: 100vh;
+  padding: 18px 18px 26px;
+  background: #fbfaf5;
+  border-left: 1px solid rgba(37, 32, 23, 0.08);
+  border-right: 1px solid rgba(37, 32, 23, 0.08);
+}
+
+.stack,
+.nameScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nameScreen {
+  justify-content: center;
+  min-height: calc(100vh - 70px);
+}
+
+.brandBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.brandKana,
+.eyebrow {
+  color: #28786e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 2.25rem;
+  line-height: 1.04;
+}
+
+h2 {
+  font-size: 1.9rem;
+  line-height: 1.05;
+}
+
+.nameForm {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  color: #625847;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid #ddd3c0;
+  border-radius: 8px;
+  padding: 0 15px;
+  background: #fffef9;
+  color: #252017;
+  font-size: 1rem;
+  outline: none;
+}
+
+input:focus {
+  border-color: #28786e;
+  box-shadow: 0 0 0 3px rgba(40, 120, 110, 0.16);
+}
+
+.primaryButton,
+.secondaryButton,
+.approveButton,
+.rejectButton,
+.iconButton {
+  min-height: 50px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.primaryButton {
+  background: #252017;
+  color: #fffef9;
+}
+
+.secondaryButton {
+  background: #e8f0eb;
+  color: #1f6159;
+}
+
+.approveButton {
+  flex: 1;
+  background: #28786e;
+  color: #fffef9;
+}
+
+.rejectButton {
+  flex: 1;
+  background: #8f4338;
+  color: #fffef9;
+}
+
+.iconButton {
+  width: 54px;
+  min-width: 54px;
+  background: #252017;
+  color: #fffef9;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.notice {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: #fff3d8;
+  color: #68470e;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.centerStatus {
+  min-height: calc(100vh - 70px);
+  display: grid;
+  place-items: center;
+  color: #625847;
+  font-weight: 800;
+}
+
+.screenHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.countBadge,
+.timerPill {
+  min-height: 38px;
+  min-width: 58px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #e8f0eb;
+  color: #1f6159;
+  font-weight: 850;
+}
+
+.playerList {
+  display: grid;
+  gap: 8px;
+}
+
+.playerRow {
+  min-height: 58px;
+  border: 1px solid #e3d8c7;
+  border-radius: 8px;
+  background: #fffef9;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.playerMeta,
+.playerStats,
+.actionBand,
+.voteActions,
+.voteCounts {
+  display: flex;
+  align-items: center;
+}
+
+.playerMeta {
+  min-width: 0;
+  gap: 7px;
+}
+
+.playerMeta strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playerStats {
+  flex-shrink: 0;
+  gap: 9px;
+  color: #625847;
+}
+
+.playerStats b {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  background: #252017;
+  color: #fffef9;
+}
+
+.statusDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #28786e;
+  flex: 0 0 auto;
+}
+
+.statusDot.offline {
+  background: #b7ac9a;
+}
+
+.actionBand {
+  gap: 10px;
+}
+
+.actionBand > button {
+  flex: 1;
+}
+
+.hostLine {
+  color: #625847;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.conditionPanel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.conditionCell {
+  min-height: 92px;
+  border-radius: 8px;
+  background: #e8f0eb;
+  color: #1f6159;
+  display: grid;
+  place-items: center;
+  padding: 10px 6px;
+}
+
+.conditionCell span {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.conditionCell strong {
+  font-size: 2.15rem;
+  line-height: 1;
+}
+
+.answerForm {
+  display: flex;
+  gap: 9px;
+}
+
+.votePanel,
+.resultPanel {
+  border-radius: 8px;
+  padding: 14px;
+  background: #252017;
+  color: #fffef9;
+}
+
+.votePanel {
+  display: grid;
+  gap: 12px;
+}
+
+.votePanel .eyebrow,
+.votePanel p {
+  color: #d8e4dc;
+}
+
+.voteCounts {
+  justify-content: space-between;
+  color: #f1e6ce;
+  font-weight: 800;
+}
+
+.voteActions {
+  gap: 9px;
+}
+
+.resultPanel {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 850;
+}
+
+.finishedScreen .screenHeader {
+  align-items: center;
+}
+
+@media (min-width: 520px) {
+  .phoneFrame {
+    min-height: calc(100vh - 32px);
+    margin: 16px 0;
+    border: 1px solid rgba(37, 32, 23, 0.08);
+    border-radius: 8px;
+  }
+}
