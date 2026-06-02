@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createInitialGameState, canStartGame, refreshHost } from "./state";
-import type { Player, VoteState } from "./types";
+import { createInitialGameState, canStartGame, refreshHost, sortRoundAnswers } from "./state";
+import type { Player, RoundAnswer, VoteState } from "./types";
 import { getRequiredApproveVotes, getVoteDecision } from "./votes";
 
 function player(id: string, connected = true): Player {
@@ -37,36 +37,77 @@ describe("game state helpers", () => {
     expect(state.hostPlayerId).toBe("b");
   });
 
-  it("uses one approve vote for two-player games", () => {
-    expect(getRequiredApproveVotes(2)).toBe(1);
-    expect(getRequiredApproveVotes(5)).toBe(3);
+  it("calculates strict majority from eligible voters", () => {
+    expect(getRequiredApproveVotes(1)).toBe(1);
+    expect(getRequiredApproveVotes(2)).toBe(2);
+    expect(getRequiredApproveVotes(3)).toBe(2);
+    expect(getRequiredApproveVotes(4)).toBe(3);
   });
 
-  it("approves once required approve votes are reached", () => {
+  it("sorts candidates by length and then first submission", () => {
+    const answers: RoundAnswer[] = [
+      { answerId: "a", playerId: "a", word: "かり", length: 2, submittedAt: 2 },
+      { answerId: "b", playerId: "b", word: "かざり", length: 3, submittedAt: 3 },
+      { answerId: "c", playerId: "c", word: "かおり", length: 3, submittedAt: 1 },
+    ];
+
+    expect(sortRoundAnswers(answers).map((answer) => answer.answerId)).toEqual(["c", "b", "a"]);
+  });
+
+  it("approves once a majority of eligible voters approves", () => {
     const vote: VoteState = {
       answerId: "answer",
       word: "かざり",
       answerPlayerId: "a",
       startedAt: 1,
       deadlineAt: 2,
-      requiredApproveVotes: 3,
-      votes: { a: "approve", b: "approve", c: "approve" },
+      requiredApproveVotes: 2,
+      eligibleVoterIds: ["b", "c", "d"],
+      answerLength: 3,
+      candidateIndex: 1,
+      totalCandidates: 2,
+      rejectedAnswerIds: [],
+      votes: { b: "approve", c: "approve" },
     };
 
-    expect(getVoteDecision(vote, ["a", "b", "c", "d"])).toBe("approved");
+    expect(getVoteDecision(vote)).toBe("approved");
   });
 
-  it("rejects after every connected player voted without enough approvals", () => {
+  it("rejects once a majority of eligible voters rejects", () => {
     const vote: VoteState = {
       answerId: "answer",
       word: "かざり",
       answerPlayerId: "a",
       startedAt: 1,
       deadlineAt: 2,
-      requiredApproveVotes: 3,
-      votes: { a: "approve", b: "reject", c: "reject" },
+      requiredApproveVotes: 2,
+      eligibleVoterIds: ["b", "c", "d"],
+      answerLength: 3,
+      candidateIndex: 1,
+      totalCandidates: 2,
+      rejectedAnswerIds: [],
+      votes: { b: "reject", c: "reject" },
     };
 
-    expect(getVoteDecision(vote, ["a", "b", "c"])).toBe("rejected");
+    expect(getVoteDecision(vote)).toBe("rejected");
+  });
+
+  it("rejects a tie after all eligible voters vote without approval majority", () => {
+    const vote: VoteState = {
+      answerId: "answer",
+      word: "かざり",
+      answerPlayerId: "a",
+      startedAt: 1,
+      deadlineAt: 2,
+      requiredApproveVotes: 2,
+      eligibleVoterIds: ["b", "c"],
+      answerLength: 3,
+      candidateIndex: 1,
+      totalCandidates: 2,
+      rejectedAnswerIds: [],
+      votes: { b: "approve", c: "reject" },
+    };
+
+    expect(getVoteDecision(vote)).toBe("rejected");
   });
 });

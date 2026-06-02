@@ -109,7 +109,7 @@ export function App() {
       }
 
       if (message.type === "round_finished" && message.winnerPlayerName) {
-        setNotice(`${message.winnerPlayerName} さんが得点しました。`);
+        setNotice(`${message.winnerPlayerName} さんが+${message.awardedPoints}点獲得しました。`);
       }
 
       if (message.type === "round_finished" && !message.winnerPlayerName) {
@@ -310,6 +310,7 @@ function GameScreen({
   const answerPlayer = vote
     ? state.players.find((player) => player.id === vote.answerPlayerId)
     : null;
+  const isCurrentAnswerMine = Boolean(vote && youPlayerId === vote.answerPlayerId);
 
   const submitAnswer = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -369,14 +370,19 @@ function GameScreen({
       {state.status === "voting" && vote ? (
         <section className="votePanel">
           <div>
-            <span className="eyebrow">投票</span>
+            <span className="eyebrow">
+              候補 {vote.candidateIndex}/{vote.totalCandidates}
+            </span>
             <h2>{vote.word}</h2>
-            <p>{answerPlayer?.name ?? "回答者"} さんの回答</p>
+            <p>
+              {answerPlayer?.name ?? "回答者"} さんの回答 / {vote.answerLength}文字
+            </p>
           </div>
           <div className="voteCounts">
-            <span>承認 {vote.approveVotes}/{vote.requiredApproveVotes}</span>
-            <span>否認 {vote.rejectVotes}</span>
+            <span>実在 {vote.approveVotes}/{vote.requiredApproveVotes}</span>
+            <span>しない {vote.rejectVotes}/{vote.requiredApproveVotes}</span>
           </div>
+          {isCurrentAnswerMine ? <p className="voteHint">自分の回答は判定待ちです</p> : null}
           <div className="voteActions">
             <button
               className="approveButton"
@@ -385,7 +391,7 @@ function GameScreen({
               onClick={() => onSend({ type: "submit_vote", answerId: vote.answerId, vote: "approve" })}
             >
               <Check size={18} aria-hidden="true" />
-              承認
+              実在する
             </button>
             <button
               className="rejectButton"
@@ -394,7 +400,7 @@ function GameScreen({
               onClick={() => onSend({ type: "submit_vote", answerId: vote.answerId, vote: "reject" })}
             >
               <X size={18} aria-hidden="true" />
-              否認
+              実在しない
             </button>
           </div>
         </section>
@@ -404,8 +410,8 @@ function GameScreen({
         <section className="resultPanel">
           <Share2 size={19} aria-hidden="true" />
           {state.round?.winnerPlayerId
-            ? `${state.players.find((player) => player.id === state.round?.winnerPlayerId)?.name ?? ""} さんが得点`
-            : "時間切れ"}
+            ? `${state.players.find((player) => player.id === state.round?.winnerPlayerId)?.name ?? ""} さんが${state.round.winningAnswerLength ?? 0}文字で+${state.round.winningAnswerLength ?? 0}点`
+            : "有効回答なし"}
         </section>
       ) : null}
 

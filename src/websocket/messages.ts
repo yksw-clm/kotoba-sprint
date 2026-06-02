@@ -80,6 +80,9 @@ export type VoteStartedMessage = {
   answerPlayerId: string;
   answerPlayerName: string;
   word: string;
+  answerLength: number;
+  candidateIndex: number;
+  totalCandidates: number;
   requiredApproveVotes: number;
   approveVotes: number;
   rejectVotes: number;
@@ -104,6 +107,7 @@ export type RoundFinishedMessage = {
   winnerPlayerId: string | null;
   winnerPlayerName: string | null;
   word: string | null;
+  awardedPoints: number;
   scores: Record<string, number>;
 };
 

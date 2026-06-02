@@ -11,6 +11,7 @@ export type Player = {
 };
 
 export type RoundAnswer = {
+  answerId: string;
   playerId: string;
   word: string;
   length: number;
@@ -26,6 +27,7 @@ export type RoundState = {
   endedAt: number | null;
   winnerPlayerId: string | null;
   winningWord: string | null;
+  winningAnswerLength: number | null;
   bestAnswers: Record<string, RoundAnswer>;
 };
 
@@ -38,6 +40,11 @@ export type VoteState = {
   startedAt: number;
   deadlineAt: number;
   requiredApproveVotes: number;
+  eligibleVoterIds: string[];
+  answerLength: number;
+  candidateIndex: number;
+  totalCandidates: number;
+  rejectedAnswerIds: string[];
   votes: Record<string, VoteValue>;
 };
 
@@ -70,6 +77,7 @@ export type PublicRoundState = {
   deadlineAt: number;
   winnerPlayerId: string | null;
   winningWord: string | null;
+  winningAnswerLength: number | null;
   bestAnswers: RoundAnswer[];
 };
 
@@ -78,6 +86,11 @@ export type PublicVoteState = {
   word: string;
   answerPlayerId: string;
   requiredApproveVotes: number;
+  eligibleVoterIds: string[];
+  answerLength: number;
+  candidateIndex: number;
+  totalCandidates: number;
+  rejectedAnswerIds: string[];
   approveVotes: number;
   rejectVotes: number;
   votedPlayerIds: string[];

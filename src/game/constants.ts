@@ -45,7 +45,7 @@ export const HIRAGANA_BASE = [
   "わ",
 ] as const;
 
-export const DEFAULT_TARGET_SCORE = 5;
+export const DEFAULT_TARGET_SCORE = 30;
 export const VOTE_TIMEOUT_MS = 15_000;
 export const ROUND_TIMEOUT_MS = 60_000;
 export const ROUND_RESULT_MS = 3_000;

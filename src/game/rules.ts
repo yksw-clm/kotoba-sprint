@@ -6,7 +6,7 @@ export function countHiraganaChars(word: string): number {
 }
 
 export function isHiraganaWord(word: string): boolean {
-  return /^[ぁ-ん]+$/.test(word);
+  return /^[ぁ-んー]+$/.test(word);
 }
 
 export function katakanaToHiragana(str: string): string {

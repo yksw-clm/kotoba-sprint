@@ -7,6 +7,7 @@ import {
   getConnectedPlayerCount,
   getConnectedPlayerIds,
   refreshHost,
+  sortRoundAnswers,
   toPublicGameState,
 } from "../../game/state";
 import type { GameState, Player, RoundAnswer, VoteState, VoteValue } from "../../game/types";
@@ -113,7 +114,7 @@ export class RoomObject extends DurableObject<Env> {
     if (state.status === "voting" && state.vote && state.vote.deadlineAt <= now) {
       event = this.rejectCurrentVote();
     } else if (state.status === "playing" && state.round && state.round.deadlineAt <= now) {
-      event = this.startVoteForBestAnswer();
+      event = this.startVoteForNextCandidate();
     } else if (
       state.status === "round_result" &&
       state.nextRoundStartsAt !== null &&
@@ -260,6 +261,11 @@ export class RoomObject extends DurableObject<Env> {
       return;
     }
 
+    if (!state.vote.eligibleVoterIds.includes(playerId)) {
+      this.send(ws, { type: "error", message: "この回答には投票できません。" });
+      return;
+    }
+
     if (state.vote.votes[playerId]) {
       this.send(ws, { type: "error", message: "この回答には投票済みです。" });
       return;
@@ -332,6 +338,7 @@ export class RoomObject extends DurableObject<Env> {
       endedAt: null,
       winnerPlayerId: null,
       winningWord: null,
+      winningAnswerLength: null,
       bestAnswers: {},
     };
   }
@@ -342,6 +349,7 @@ export class RoomObject extends DurableObject<Env> {
     if (!round) return;
 
     const nextAnswer: RoundAnswer = {
+      answerId: crypto.randomUUID(),
       playerId,
       word,
       length: countHiraganaChars(word),
@@ -353,40 +361,45 @@ export class RoomObject extends DurableObject<Env> {
     }
   }
 
-  private startVoteForBestAnswer(): ServerMessage {
+  private startVoteForNextCandidate(rejectedAnswerIds: string[] = []): ServerMessage {
     const state = this.requireState();
-    const candidate = this.getBestRoundAnswer();
+    const candidates = this.getSortedRoundCandidates();
+    const candidate = candidates.find((answer) => !rejectedAnswerIds.includes(answer.answerId));
     if (!candidate) {
       return this.finishRound(null, null);
     }
 
-    return this.startVote(candidate.playerId, candidate.word);
+    return this.startVote(candidate, candidates, rejectedAnswerIds);
   }
 
-  private getBestRoundAnswer(): RoundAnswer | null {
+  private getSortedRoundCandidates(): RoundAnswer[] {
     const state = this.requireState();
-    const answers = Object.values(state.round?.bestAnswers ?? {});
-    if (answers.length === 0) return null;
-    return answers.sort((a, b) => {
-      if (b.length !== a.length) return b.length - a.length;
-      return a.submittedAt - b.submittedAt;
-    })[0];
+    return sortRoundAnswers(Object.values(state.round?.bestAnswers ?? {}));
   }
 
-  private startVote(answerPlayerId: string, word: string): ServerMessage {
+  private startVote(
+    candidate: RoundAnswer,
+    candidates: RoundAnswer[],
+    rejectedAnswerIds: string[],
+  ): ServerMessage {
     const state = this.requireState();
     const now = Date.now();
-    const activePlayerCount = getConnectedPlayerCount(state);
+    const eligibleVoterIds = getConnectedPlayerIds(state).filter(
+      (playerId) => playerId !== candidate.playerId,
+    );
     const vote: VoteState = {
-      answerId: crypto.randomUUID(),
-      word,
-      answerPlayerId,
+      answerId: candidate.answerId,
+      word: candidate.word,
+      answerPlayerId: candidate.playerId,
       startedAt: now,
       deadlineAt: now + VOTE_TIMEOUT_MS,
-      requiredApproveVotes: getRequiredApproveVotes(activePlayerCount),
-      votes: {
-        [answerPlayerId]: "approve",
-      },
+      requiredApproveVotes: getRequiredApproveVotes(eligibleVoterIds.length),
+      eligibleVoterIds,
+      answerLength: candidate.length,
+      candidateIndex: candidates.findIndex((answer) => answer.answerId === candidate.answerId) + 1,
+      totalCandidates: candidates.length,
+      rejectedAnswerIds,
+      votes: {},
     };
 
     state.status = "voting";
@@ -399,9 +412,12 @@ export class RoomObject extends DurableObject<Env> {
     return {
       type: "vote_started",
       answerId: vote.answerId,
-      answerPlayerId,
-      answerPlayerName: state.players[answerPlayerId]?.name ?? "",
-      word,
+      answerPlayerId: candidate.playerId,
+      answerPlayerName: state.players[candidate.playerId]?.name ?? "",
+      word: candidate.word,
+      answerLength: candidate.length,
+      candidateIndex: vote.candidateIndex,
+      totalCandidates: vote.totalCandidates,
       requiredApproveVotes: vote.requiredApproveVotes,
       approveVotes: totals.approve,
       rejectVotes: totals.reject,
@@ -412,9 +428,9 @@ export class RoomObject extends DurableObject<Env> {
     const state = this.requireState();
     if (!state.vote) return null;
 
-    const decision = getVoteDecision(state.vote, getConnectedPlayerIds(state));
+    const decision = getVoteDecision(state.vote);
     if (decision === "approved") {
-      return this.finishRound(state.vote.answerPlayerId, state.vote.word);
+      return this.finishRound(state.vote.answerPlayerId, state.vote.word, state.vote.answerLength);
     }
     if (decision === "rejected") {
       return this.rejectCurrentVote();
@@ -427,11 +443,16 @@ export class RoomObject extends DurableObject<Env> {
     const vote = state.vote;
     if (!vote) return null;
 
+    const rejectedAnswerIds = [...vote.rejectedAnswerIds, vote.answerId];
     state.vote = null;
-    return this.finishRound(null, null);
+    return this.startVoteForNextCandidate(rejectedAnswerIds);
   }
 
-  private finishRound(winnerPlayerId: string | null, winningWord: string | null): ServerMessage {
+  private finishRound(
+    winnerPlayerId: string | null,
+    winningWord: string | null,
+    winningAnswerLength: number | null = null,
+  ): ServerMessage {
     const state = this.requireState();
     const now = Date.now();
     const round = state.round;
@@ -440,13 +461,15 @@ export class RoomObject extends DurableObject<Env> {
       round.endedAt = now;
       round.winnerPlayerId = winnerPlayerId;
       round.winningWord = winningWord;
+      round.winningAnswerLength = winningAnswerLength;
     }
 
     state.vote = null;
     state.nextRoundStartsAt = null;
 
     if (winnerPlayerId && state.players[winnerPlayerId]) {
-      state.players[winnerPlayerId].score += 1;
+      const awardedPoints = winningAnswerLength ?? 0;
+      state.players[winnerPlayerId].score += awardedPoints;
       if (state.players[winnerPlayerId].score >= state.targetScore) {
         state.status = "finished";
         return {
@@ -465,6 +488,7 @@ export class RoomObject extends DurableObject<Env> {
       winnerPlayerId,
       winnerPlayerName: winnerPlayerId ? state.players[winnerPlayerId]?.name ?? null : null,
       word: winningWord,
+      awardedPoints: winningAnswerLength ?? 0,
       scores: this.getScores(),
     };
   }
@@ -505,7 +529,13 @@ export class RoomObject extends DurableObject<Env> {
     const state = this.state;
     if (!state) return;
     const round = state.round as GameState["round"] & { length?: number };
-    if (round && (!round.startChar || !round.endChar || !round.bestAnswers)) {
+    if (
+      round &&
+      (!round.startChar ||
+        !round.endChar ||
+        !round.bestAnswers ||
+        Object.values(round.bestAnswers).some((answer) => !answer.answerId))
+    ) {
       state.status = "waiting";
       state.round = null;
       state.vote = null;

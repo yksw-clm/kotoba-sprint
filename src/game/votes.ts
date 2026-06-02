@@ -8,8 +8,7 @@ export type VoteTotals = {
 export type VoteDecision = "approved" | "rejected" | "pending";
 
 export function getRequiredApproveVotes(playerCount: number): number {
-  if (playerCount <= 2) return 1;
-  return 3;
+  return Math.floor(playerCount / 2) + 1;
 }
 
 export function countVoteTotals(vote: VoteState): VoteTotals {
@@ -26,12 +25,13 @@ export function countVoteTotals(vote: VoteState): VoteTotals {
   );
 }
 
-export function getVoteDecision(vote: VoteState, connectedPlayerIds: string[]): VoteDecision {
+export function getVoteDecision(vote: VoteState): VoteDecision {
   const totals = countVoteTotals(vote);
   if (totals.approve >= vote.requiredApproveVotes) return "approved";
+  if (totals.reject >= vote.requiredApproveVotes) return "rejected";
 
-  const allConnectedPlayersVoted = connectedPlayerIds.every((playerId) => vote.votes[playerId]);
-  if (allConnectedPlayersVoted) return "rejected";
+  const allEligiblePlayersVoted = vote.eligibleVoterIds.every((playerId) => vote.votes[playerId]);
+  if (allEligiblePlayersVoted) return "rejected";
 
   return "pending";
 }

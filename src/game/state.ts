@@ -6,6 +6,7 @@ import type {
   PublicPlayerState,
   PublicRoundState,
   PublicVoteState,
+  RoundAnswer,
 } from "./types";
 import { countVoteTotals } from "./votes";
 
@@ -102,10 +103,8 @@ function toPublicRoundState(round: NonNullable<GameState["round"]>): PublicRound
     deadlineAt: round.deadlineAt,
     winnerPlayerId: round.winnerPlayerId,
     winningWord: round.winningWord,
-    bestAnswers: Object.values(round.bestAnswers).sort((a, b) => {
-      if (b.length !== a.length) return b.length - a.length;
-      return a.submittedAt - b.submittedAt;
-    }),
+    winningAnswerLength: round.winningAnswerLength,
+    bestAnswers: sortRoundAnswers(Object.values(round.bestAnswers)),
   };
 }
 
@@ -116,9 +115,21 @@ function toPublicVoteState(vote: NonNullable<GameState["vote"]>): PublicVoteStat
     word: vote.word,
     answerPlayerId: vote.answerPlayerId,
     requiredApproveVotes: vote.requiredApproveVotes,
+    eligibleVoterIds: vote.eligibleVoterIds,
+    answerLength: vote.answerLength,
+    candidateIndex: vote.candidateIndex,
+    totalCandidates: vote.totalCandidates,
+    rejectedAnswerIds: vote.rejectedAnswerIds,
     approveVotes: totals.approve,
     rejectVotes: totals.reject,
     votedPlayerIds: Object.keys(vote.votes),
     deadlineAt: vote.deadlineAt,
   };
+}
+
+export function sortRoundAnswers(answers: RoundAnswer[]): RoundAnswer[] {
+  return [...answers].sort((a, b) => {
+    if (b.length !== a.length) return b.length - a.length;
+    return a.submittedAt - b.submittedAt;
+  });
 }

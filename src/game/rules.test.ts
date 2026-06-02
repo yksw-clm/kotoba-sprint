@@ -17,9 +17,10 @@ describe("word rules", () => {
     expect(normalizeAnswer("ｶﾀｶﾅ")).toBe("かたかな");
   });
 
-  it("allows hiragana and rejects long vowel marks", () => {
+  it("allows hiragana and long vowel marks", () => {
     expect(isHiraganaWord("かざり")).toBe(true);
-    expect(isHiraganaWord("ちょこれーと")).toBe(false);
+    expect(isHiraganaWord("ちょこれーと")).toBe(true);
+    expect(countHiraganaChars("ちょこれーと")).toBe(6);
   });
 
   it("checks start, end, and length structurally", () => {
@@ -47,6 +48,16 @@ describe("word rules", () => {
         word: "しごとの",
         startChar: "し",
         endChar: "の",
+      }),
+    ).toBe(true);
+  });
+
+  it("can validate answers containing a long vowel mark", () => {
+    expect(
+      isStructurallyValidAnswer({
+        word: "かれーた",
+        startChar: "か",
+        endChar: "た",
       }),
     ).toBe(true);
   });

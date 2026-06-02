@@ -361,6 +361,11 @@ button:disabled {
   font-weight: 800;
 }
 
+.voteHint {
+  color: #d8e4dc;
+  font-weight: 800;
+}
+
 .voteActions {
   gap: 9px;
 }
