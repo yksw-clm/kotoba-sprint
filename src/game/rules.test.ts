@@ -4,9 +4,7 @@ import {
   isHiraganaWord,
   isStructurallyValidAnswer,
   normalizeAnswer,
-  randomWordLength,
 } from "./rules";
-import { MAX_WORD_LENGTH, MIN_WORD_LENGTH } from "./constants";
 
 describe("word rules", () => {
   it("counts small hiragana as one displayed character", () => {
@@ -43,11 +41,13 @@ describe("word rules", () => {
     ).toBe(false);
   });
 
-  it("generates word lengths in the configured range", () => {
-    for (let i = 0; i < 100; i += 1) {
-      const length = randomWordLength();
-      expect(length).toBeGreaterThanOrEqual(MIN_WORD_LENGTH);
-      expect(length).toBeLessThanOrEqual(MAX_WORD_LENGTH);
-    }
+  it("can validate answers without a fixed target length", () => {
+    expect(
+      isStructurallyValidAnswer({
+        word: "しごとの",
+        startChar: "し",
+        endChar: "の",
+      }),
+    ).toBe(true);
   });
 });

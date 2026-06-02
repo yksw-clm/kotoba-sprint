@@ -9,8 +9,14 @@ import {
   refreshHost,
   toPublicGameState,
 } from "../../game/state";
-import type { GameState, Player, VoteState, VoteValue } from "../../game/types";
-import { normalizeAnswer, normalizePlayerName, isStructurallyValidAnswer, pickRandomHiragana, randomWordLength } from "../../game/rules";
+import type { GameState, Player, RoundAnswer, VoteState, VoteValue } from "../../game/types";
+import {
+  countHiraganaChars,
+  normalizeAnswer,
+  normalizePlayerName,
+  isStructurallyValidAnswer,
+  pickRandomHiragana,
+} from "../../game/rules";
 import { countVoteTotals, getRequiredApproveVotes, getVoteDecision } from "../../game/votes";
 import { parseClientMessage, type ServerMessage } from "../../websocket/messages";
 import type { SessionAttachment } from "../../websocket/sessions";
@@ -26,6 +32,9 @@ export class RoomObject extends DurableObject<Env> {
     super(ctx, env);
     this.ready = ctx.blockConcurrencyWhile(async () => {
       this.state = (await ctx.storage.get<GameState>(GAME_STATE_KEY)) ?? null;
+      if (this.state) {
+        this.migrateState();
+      }
     });
   }
 
@@ -104,7 +113,7 @@ export class RoomObject extends DurableObject<Env> {
     if (state.status === "voting" && state.vote && state.vote.deadlineAt <= now) {
       event = this.rejectCurrentVote();
     } else if (state.status === "playing" && state.round && state.round.deadlineAt <= now) {
-      event = this.finishRound(null, null);
+      event = this.startVoteForBestAnswer();
     } else if (
       state.status === "round_result" &&
       state.nextRoundStartsAt !== null &&
@@ -220,7 +229,6 @@ export class RoomObject extends DurableObject<Env> {
       word,
       startChar: player.startChar,
       endChar: player.endChar,
-      length: state.round.length,
     });
 
     if (!isValid) {
@@ -228,9 +236,8 @@ export class RoomObject extends DurableObject<Env> {
       return;
     }
 
-    const event = this.startVote(playerId, word);
+    this.recordBestAnswer(playerId, word);
     await this.persist();
-    this.broadcast(event);
     this.broadcastRoomState();
   }
 
@@ -300,12 +307,16 @@ export class RoomObject extends DurableObject<Env> {
     const now = Date.now();
 
     for (const player of Object.values(state.players)) {
+      player.startChar = null;
+      player.endChar = null;
+    }
+
+    const startChar = pickRandomHiragana();
+    const endChar = pickRandomHiragana();
+    for (const player of Object.values(state.players)) {
       if (player.connected) {
-        player.startChar = pickRandomHiragana();
-        player.endChar = pickRandomHiragana();
-      } else {
-        player.startChar = null;
-        player.endChar = null;
+        player.startChar = startChar;
+        player.endChar = endChar;
       }
     }
 
@@ -314,13 +325,52 @@ export class RoomObject extends DurableObject<Env> {
     state.nextRoundStartsAt = null;
     state.round = {
       roundNumber: (state.round?.roundNumber ?? 0) + 1,
-      length: randomWordLength(),
+      startChar,
+      endChar,
       startedAt: now,
       deadlineAt: now + ROUND_TIMEOUT_MS,
       endedAt: null,
       winnerPlayerId: null,
       winningWord: null,
+      bestAnswers: {},
     };
+  }
+
+  private recordBestAnswer(playerId: string, word: string): void {
+    const state = this.requireState();
+    const round = state.round;
+    if (!round) return;
+
+    const nextAnswer: RoundAnswer = {
+      playerId,
+      word,
+      length: countHiraganaChars(word),
+      submittedAt: Date.now(),
+    };
+    const current = round.bestAnswers[playerId];
+    if (!current || nextAnswer.length > current.length) {
+      round.bestAnswers[playerId] = nextAnswer;
+    }
+  }
+
+  private startVoteForBestAnswer(): ServerMessage {
+    const state = this.requireState();
+    const candidate = this.getBestRoundAnswer();
+    if (!candidate) {
+      return this.finishRound(null, null);
+    }
+
+    return this.startVote(candidate.playerId, candidate.word);
+  }
+
+  private getBestRoundAnswer(): RoundAnswer | null {
+    const state = this.requireState();
+    const answers = Object.values(state.round?.bestAnswers ?? {});
+    if (answers.length === 0) return null;
+    return answers.sort((a, b) => {
+      if (b.length !== a.length) return b.length - a.length;
+      return a.submittedAt - b.submittedAt;
+    })[0];
   }
 
   private startVote(answerPlayerId: string, word: string): ServerMessage {
@@ -378,16 +428,7 @@ export class RoomObject extends DurableObject<Env> {
     if (!vote) return null;
 
     state.vote = null;
-    if (state.round && state.round.deadlineAt <= Date.now()) {
-      return this.finishRound(null, null);
-    }
-
-    state.status = "playing";
-    return {
-      type: "vote_rejected",
-      answerId: vote.answerId,
-      word: vote.word,
-    };
+    return this.finishRound(null, null);
   }
 
   private finishRound(winnerPlayerId: string | null, winningWord: string | null): ServerMessage {
@@ -458,6 +499,19 @@ export class RoomObject extends DurableObject<Env> {
   private requireState(): GameState {
     if (!this.state) throw new Error("Room state has not been initialized.");
     return this.state;
+  }
+
+  private migrateState(): void {
+    const state = this.state;
+    if (!state) return;
+    const round = state.round as GameState["round"] & { length?: number };
+    if (round && (!round.startChar || !round.endChar || !round.bestAnswers)) {
+      state.status = "waiting";
+      state.round = null;
+      state.vote = null;
+      state.nextRoundStartsAt = null;
+      clearPlayerConditions(state);
+    }
   }
 
   private async persist(): Promise<void> {

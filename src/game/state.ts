@@ -96,11 +96,16 @@ function toPublicPlayerState(player: Player): PublicPlayerState {
 function toPublicRoundState(round: NonNullable<GameState["round"]>): PublicRoundState {
   return {
     roundNumber: round.roundNumber,
-    length: round.length,
+    startChar: round.startChar,
+    endChar: round.endChar,
     startedAt: round.startedAt,
     deadlineAt: round.deadlineAt,
     winnerPlayerId: round.winnerPlayerId,
     winningWord: round.winningWord,
+    bestAnswers: Object.values(round.bestAnswers).sort((a, b) => {
+      if (b.length !== a.length) return b.length - a.length;
+      return a.submittedAt - b.submittedAt;
+    }),
   };
 }
 

@@ -290,6 +290,10 @@ button:disabled {
   gap: 9px;
 }
 
+.conditionPanel.twoColumns {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .conditionCell {
   min-height: 92px;
   border-radius: 8px;
@@ -316,7 +320,8 @@ button:disabled {
 }
 
 .votePanel,
-.resultPanel {
+.resultPanel,
+.bestPanel {
   border-radius: 8px;
   padding: 14px;
   background: #252017;
@@ -326,6 +331,23 @@ button:disabled {
 .votePanel {
   display: grid;
   gap: 12px;
+}
+
+.bestPanel {
+  display: grid;
+  gap: 4px;
+  background: #e8f0eb;
+  color: #1f6159;
+}
+
+.bestPanel strong {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.bestPanel small {
+  color: #625847;
+  font-weight: 750;
 }
 
 .votePanel .eyebrow,

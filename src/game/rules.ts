@@ -1,4 +1,4 @@
-import { HIRAGANA_BASE, MAX_WORD_LENGTH, MIN_WORD_LENGTH } from "./constants";
+import { HIRAGANA_BASE } from "./constants";
 import { randomInt } from "../utils/random";
 
 export function countHiraganaChars(word: string): number {
@@ -27,7 +27,7 @@ export function isStructurallyValidAnswer(params: {
   word: string;
   startChar: string;
   endChar: string;
-  length: number;
+  length?: number;
 }): boolean {
   const chars = Array.from(params.word);
 
@@ -37,12 +37,8 @@ export function isStructurallyValidAnswer(params: {
     isHiraganaWord(params.word) &&
     chars[0] === params.startChar &&
     chars[chars.length - 1] === params.endChar &&
-    chars.length === params.length
+    (params.length === undefined || chars.length === params.length)
   );
-}
-
-export function randomWordLength(): number {
-  return randomInt(MIN_WORD_LENGTH, MAX_WORD_LENGTH);
 }
 
 export function pickRandomHiragana(): string {

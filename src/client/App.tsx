@@ -111,6 +111,10 @@ export function App() {
       if (message.type === "round_finished" && message.winnerPlayerName) {
         setNotice(`${message.winnerPlayerName} さんが得点しました。`);
       }
+
+      if (message.type === "round_finished" && !message.winnerPlayerName) {
+        setNotice("このラウンドは無得点です。");
+      }
     });
 
     socket.addEventListener("close", () => {
@@ -324,20 +328,28 @@ function GameScreen({
         <div className="timerPill">{secondsLeft}s</div>
       </header>
 
-      <section className="conditionPanel">
+      <section className="conditionPanel twoColumns">
         <div className="conditionCell">
           <span>最初</span>
-          <strong>{me?.startChar ?? "-"}</strong>
-        </div>
-        <div className="conditionCell">
-          <span>文字数</span>
-          <strong>{state.round?.length ?? "-"}</strong>
+          <strong>{state.round?.startChar ?? me?.startChar ?? "-"}</strong>
         </div>
         <div className="conditionCell">
           <span>最後</span>
-          <strong>{me?.endChar ?? "-"}</strong>
+          <strong>{state.round?.endChar ?? me?.endChar ?? "-"}</strong>
         </div>
       </section>
+
+      {state.status === "playing" ? (
+        <section className="bestPanel">
+          <span className="eyebrow">現在のベスト</span>
+          <strong>{getBestAnswerForPlayer(state, youPlayerId)?.word ?? "まだ回答なし"}</strong>
+          <small>
+            {getBestAnswerForPlayer(state, youPlayerId)
+              ? `${getBestAnswerForPlayer(state, youPlayerId)?.length}文字`
+              : "60秒以内に何度でも更新できます"}
+          </small>
+        </section>
+      ) : null}
 
       {state.status === "playing" ? (
         <form className="answerForm" onSubmit={submitAnswer}>
@@ -397,7 +409,11 @@ function GameScreen({
         </section>
       ) : null}
 
-      <PlayerList players={state.players} hostPlayerId={state.hostPlayerId} />
+      <PlayerList
+        players={state.players}
+        hostPlayerId={state.hostPlayerId}
+        bestAnswers={state.round?.bestAnswers ?? []}
+      />
     </div>
   );
 }
@@ -425,10 +441,13 @@ function FinishedScreen({ state }: { state: PublicGameState }) {
 function PlayerList({
   players,
   hostPlayerId,
+  bestAnswers = [],
 }: {
   players: PublicPlayerState[];
   hostPlayerId: string | null;
+  bestAnswers?: NonNullable<PublicGameState["round"]>["bestAnswers"];
 }) {
+  const bestAnswerByPlayerId = new Map(bestAnswers.map((answer) => [answer.playerId, answer]));
   return (
     <section className="playerList" aria-label="プレイヤー">
       {players.map((player) => (
@@ -440,7 +459,9 @@ function PlayerList({
             {!player.connected ? <WifiOff size={15} aria-label="切断中" /> : null}
           </div>
           <div className="playerStats">
-            {player.startChar && player.endChar ? (
+            {bestAnswerByPlayerId.has(player.id) ? (
+              <span>{bestAnswerByPlayerId.get(player.id)?.length}文字</span>
+            ) : player.startChar && player.endChar ? (
               <span>
                 {player.startChar}...{player.endChar}
               </span>
@@ -451,6 +472,11 @@ function PlayerList({
       ))}
     </section>
   );
+}
+
+function getBestAnswerForPlayer(state: PublicGameState, playerId: string | null) {
+  if (!playerId || !state.round) return null;
+  return state.round.bestAnswers.find((answer) => answer.playerId === playerId) ?? null;
 }
 
 function useNow(): number {
