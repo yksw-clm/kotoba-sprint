@@ -7,6 +7,8 @@ import {
   getConnectedPlayerCount,
   getConnectedPlayerIds,
   refreshHost,
+  resetGameToWaiting,
+  shouldReplaceBestAnswer,
   sortRoundAnswers,
   toPublicGameState,
 } from "../../game/state";
@@ -88,6 +90,9 @@ export class RoomObject extends DurableObject<Env> {
         return;
       case "start_game":
         await this.handleStartGame(ws);
+        return;
+      case "restart_game":
+        await this.handleRestartGame(ws);
         return;
       case "submit_answer":
         await this.handleSubmitAnswer(ws, clientMessage.word);
@@ -197,6 +202,25 @@ export class RoomObject extends DurableObject<Env> {
     await this.persist();
     this.broadcast({ type: "game_started", state: toPublicGameState(state) });
     this.broadcast(this.createRoundStartedMessage());
+    this.broadcastRoomState();
+  }
+
+  private async handleRestartGame(ws: WebSocket): Promise<void> {
+    const state = await this.ensureState();
+    const playerId = this.getAttachment(ws)?.playerId ?? null;
+
+    if (state.status !== "finished") {
+      this.send(ws, { type: "error", message: "試合終了後に再戦できます。" });
+      return;
+    }
+
+    if (!playerId || state.hostPlayerId !== playerId) {
+      this.send(ws, { type: "error", message: "再戦できるのはホストだけです。" });
+      return;
+    }
+
+    resetGameToWaiting(state);
+    await this.persist();
     this.broadcastRoomState();
   }
 
@@ -356,7 +380,7 @@ export class RoomObject extends DurableObject<Env> {
       submittedAt: Date.now(),
     };
     const current = round.bestAnswers[playerId];
-    if (!current || nextAnswer.length > current.length) {
+    if (shouldReplaceBestAnswer(current, nextAnswer)) {
       round.bestAnswers[playerId] = nextAnswer;
     }
   }

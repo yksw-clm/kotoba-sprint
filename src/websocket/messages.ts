@@ -3,6 +3,7 @@ import type { PublicGameState, PublicPlayerState, PublicRoundState, VoteValue } 
 export type ClientMessage =
   | JoinRoomMessage
   | StartGameMessage
+  | RestartGameMessage
   | SubmitAnswerMessage
   | SubmitVoteMessage;
 
@@ -13,6 +14,10 @@ export type JoinRoomMessage = {
 
 export type StartGameMessage = {
   type: "start_game";
+};
+
+export type RestartGameMessage = {
+  type: "restart_game";
 };
 
 export type SubmitAnswerMessage = {
@@ -132,6 +137,8 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
       return { type: "join_room", name: value.name };
     case "start_game":
       return { type: "start_game" };
+    case "restart_game":
+      return { type: "restart_game" };
     case "submit_answer":
       if (typeof value.word !== "string") return null;
       return { type: "submit_answer", word: value.word };

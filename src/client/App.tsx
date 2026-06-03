@@ -3,6 +3,7 @@ import {
   Copy,
   Crown,
   Play,
+  RotateCcw,
   Send,
   Share2,
   Users,
@@ -171,7 +172,11 @@ export function App() {
   if (state.status === "finished") {
     return (
       <Shell notice={notice}>
-        <FinishedScreen state={state} />
+        <FinishedScreen
+          state={state}
+          isHost={isHost}
+          onRestart={() => send({ type: "restart_game" })}
+        />
       </Shell>
     );
   }
@@ -424,7 +429,15 @@ function GameScreen({
   );
 }
 
-function FinishedScreen({ state }: { state: PublicGameState }) {
+function FinishedScreen({
+  state,
+  isHost,
+  onRestart,
+}: {
+  state: PublicGameState;
+  isHost: boolean;
+  onRestart: () => void;
+}) {
   const winner = state.players.reduce<PublicPlayerState | null>((current, player) => {
     if (!current || player.score > current.score) return player;
     return current;
@@ -440,6 +453,15 @@ function FinishedScreen({ state }: { state: PublicGameState }) {
         <Crown size={30} aria-hidden="true" />
       </header>
       <PlayerList players={state.players} hostPlayerId={state.hostPlayerId} />
+      <div className="actionBand">
+        <button className="primaryButton" type="button" disabled={!isHost} onClick={onRestart}>
+          <RotateCcw size={18} aria-hidden="true" />
+          再戦する
+        </button>
+      </div>
+      <div className="hostLine">
+        {isHost ? "同じルームで待機画面に戻ります" : "ホストの再戦操作を待っています"}
+      </div>
     </div>
   );
 }

@@ -70,6 +70,25 @@ export function clearPlayerConditions(state: GameState): void {
   }
 }
 
+export function resetGameToWaiting(state: GameState): void {
+  state.status = "waiting";
+  state.round = null;
+  state.vote = null;
+  state.nextRoundStartsAt = null;
+  for (const player of Object.values(state.players)) {
+    player.score = 0;
+  }
+  clearPlayerConditions(state);
+  refreshHost(state);
+}
+
+export function shouldReplaceBestAnswer(
+  current: RoundAnswer | undefined,
+  nextAnswer: RoundAnswer,
+): boolean {
+  return !current || nextAnswer.length >= current.length;
+}
+
 export function toPublicGameState(state: GameState): PublicGameState {
   return {
     status: state.status,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   countHiraganaChars,
   isHiraganaWord,
+  isLastCharMatch,
   isStructurallyValidAnswer,
   normalizeAnswer,
 } from "./rules";
@@ -58,6 +59,31 @@ describe("word rules", () => {
         word: "かれーた",
         startChar: "か",
         endChar: "た",
+      }),
+    ).toBe(true);
+  });
+
+  it("allows small hiragana variants for the final condition character", () => {
+    expect(isLastCharMatch("ゆ", "ゅ")).toBe(true);
+    expect(isLastCharMatch("つ", "っ")).toBe(true);
+    expect(isLastCharMatch("あ", "ぁ")).toBe(true);
+    expect(isLastCharMatch("わ", "ゎ")).toBe(true);
+    expect(isLastCharMatch("ゆ", "ゃ")).toBe(false);
+  });
+
+  it("accepts words that end with the small variant of the final condition", () => {
+    expect(
+      isStructurallyValidAnswer({
+        word: "すかっしゅ",
+        startChar: "す",
+        endChar: "ゆ",
+      }),
+    ).toBe(true);
+    expect(
+      isStructurallyValidAnswer({
+        word: "すらっしゅ",
+        startChar: "す",
+        endChar: "ゆ",
       }),
     ).toBe(true);
   });

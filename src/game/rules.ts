@@ -1,6 +1,19 @@
 import { HIRAGANA_BASE } from "./constants";
 import { randomInt } from "../utils/random";
 
+const SMALL_HIRAGANA_BY_BASE: Record<string, string> = {
+  あ: "ぁ",
+  い: "ぃ",
+  う: "ぅ",
+  え: "ぇ",
+  お: "ぉ",
+  つ: "っ",
+  や: "ゃ",
+  ゆ: "ゅ",
+  よ: "ょ",
+  わ: "ゎ",
+};
+
 export function countHiraganaChars(word: string): number {
   return Array.from(word).length;
 }
@@ -23,6 +36,10 @@ export function normalizePlayerName(input: string): string {
   return input.trim().replace(/\s+/g, " ").normalize("NFKC").slice(0, 16);
 }
 
+export function isLastCharMatch(endChar: string, actualLastChar: string): boolean {
+  return actualLastChar === endChar || actualLastChar === SMALL_HIRAGANA_BY_BASE[endChar];
+}
+
 export function isStructurallyValidAnswer(params: {
   word: string;
   startChar: string;
@@ -36,7 +53,7 @@ export function isStructurallyValidAnswer(params: {
   return (
     isHiraganaWord(params.word) &&
     chars[0] === params.startChar &&
-    chars[chars.length - 1] === params.endChar &&
+    isLastCharMatch(params.endChar, chars[chars.length - 1]) &&
     (params.length === undefined || chars.length === params.length)
   );
 }
