@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "kotoba-sprint",
+  "name": "kotobasprint",
   "main": "src/worker/index.ts",
   "compatibility_date": "2026-06-01",
   "assets": {
