@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { ROUND_RESULT_MS, ROUND_TIMEOUT_MS, VOTE_TIMEOUT_MS } from "../../game/constants";
+import { DEFAULT_ROUND_TIME_SECONDS, ROUND_RESULT_MS, VOTE_TIMEOUT_MS } from "../../game/constants";
 import {
   canStartGame,
   clearPlayerConditions,
@@ -12,12 +12,20 @@ import {
   sortRoundAnswers,
   toPublicGameState,
 } from "../../game/state";
-import type { GameState, Player, RoundAnswer, VoteState, VoteValue } from "../../game/types";
+import type {
+  GameSettings,
+  GameState,
+  Player,
+  RoundAnswer,
+  VoteState,
+  VoteValue,
+} from "../../game/types";
 import {
   countHiraganaChars,
   normalizeAnswer,
   normalizePlayerName,
   isStructurallyValidAnswer,
+  pickRandomEndHiragana,
   pickRandomHiragana,
 } from "../../game/rules";
 import { countVoteTotals, getRequiredApproveVotes, getVoteDecision } from "../../game/votes";
@@ -89,7 +97,7 @@ export class RoomObject extends DurableObject<Env> {
         await this.handleJoinRoom(ws, clientMessage.name);
         return;
       case "start_game":
-        await this.handleStartGame(ws);
+        await this.handleStartGame(ws, clientMessage.settings);
         return;
       case "restart_game":
         await this.handleRestartGame(ws);
@@ -182,7 +190,7 @@ export class RoomObject extends DurableObject<Env> {
     this.broadcastRoomState();
   }
 
-  private async handleStartGame(ws: WebSocket): Promise<void> {
+  private async handleStartGame(ws: WebSocket, settings: GameSettings): Promise<void> {
     const state = await this.ensureState();
     const playerId = this.getAttachment(ws)?.playerId ?? null;
 
@@ -197,6 +205,8 @@ export class RoomObject extends DurableObject<Env> {
     for (const player of Object.values(state.players)) {
       player.score = 0;
     }
+    state.targetScore = settings.targetScore;
+    state.roundTimeSeconds = settings.roundTimeSeconds;
 
     this.startRound();
     await this.persist();
@@ -342,7 +352,7 @@ export class RoomObject extends DurableObject<Env> {
     }
 
     const startChar = pickRandomHiragana();
-    const endChar = pickRandomHiragana();
+    const endChar = pickRandomEndHiragana();
     for (const player of Object.values(state.players)) {
       if (player.connected) {
         player.startChar = startChar;
@@ -358,7 +368,7 @@ export class RoomObject extends DurableObject<Env> {
       startChar,
       endChar,
       startedAt: now,
-      deadlineAt: now + ROUND_TIMEOUT_MS,
+      deadlineAt: now + state.roundTimeSeconds * 1000,
       endedAt: null,
       winnerPlayerId: null,
       winningWord: null,
@@ -552,6 +562,9 @@ export class RoomObject extends DurableObject<Env> {
   private migrateState(): void {
     const state = this.state;
     if (!state) return;
+    if (!state.roundTimeSeconds) {
+      state.roundTimeSeconds = DEFAULT_ROUND_TIME_SECONDS;
+    }
     const round = state.round as GameState["round"] & { length?: number };
     if (
       round &&

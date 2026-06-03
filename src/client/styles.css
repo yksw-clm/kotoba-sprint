@@ -284,6 +284,67 @@ button:disabled {
   font-weight: 750;
 }
 
+.settingsPanel {
+  border: 1px solid #e3d8c7;
+  border-radius: 8px;
+  background: #fffef9;
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.settingsHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.settingsHeader strong,
+.settingsSummary {
+  color: #625847;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.settingField {
+  display: grid;
+  gap: 7px;
+}
+
+.settingField input {
+  min-height: 46px;
+}
+
+.settingField > span {
+  color: #625847;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.segmentedControl {
+  min-height: 46px;
+  border: 1px solid #ddd3c0;
+  border-radius: 8px;
+  background: #f4efe5;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.segmentButton {
+  min-width: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #625847;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.segmentButton.selected {
+  background: #28786e;
+  color: #fffef9;
+}
+
 .conditionPanel {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

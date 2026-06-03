@@ -1,4 +1,11 @@
-import type { PublicGameState, PublicPlayerState, PublicRoundState, VoteValue } from "../game/types";
+import { parseGameSettings } from "../game/settings";
+import type {
+  GameSettings,
+  PublicGameState,
+  PublicPlayerState,
+  PublicRoundState,
+  VoteValue,
+} from "../game/types";
 
 export type ClientMessage =
   | JoinRoomMessage
@@ -14,6 +21,7 @@ export type JoinRoomMessage = {
 
 export type StartGameMessage = {
   type: "start_game";
+  settings: GameSettings;
 };
 
 export type RestartGameMessage = {
@@ -136,7 +144,11 @@ export function parseClientMessage(value: unknown): ClientMessage | null {
       if (typeof value.name !== "string") return null;
       return { type: "join_room", name: value.name };
     case "start_game":
-      return { type: "start_game" };
+      {
+        const settings = parseGameSettings(value.settings);
+        if (!settings) return null;
+        return { type: "start_game", settings };
+      }
     case "restart_game":
       return { type: "restart_game" };
     case "submit_answer":

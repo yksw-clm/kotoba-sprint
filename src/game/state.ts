@@ -1,4 +1,4 @@
-import { DEFAULT_TARGET_SCORE } from "./constants";
+import { DEFAULT_ROUND_TIME_SECONDS, DEFAULT_TARGET_SCORE } from "./constants";
 import type {
   GameState,
   Player,
@@ -7,12 +7,14 @@ import type {
   PublicRoundState,
   PublicVoteState,
   RoundAnswer,
+  RoundTimeSeconds,
 } from "./types";
 import { countVoteTotals } from "./votes";
 
 export function createInitialGameState(
   roomId: string,
   targetScore = DEFAULT_TARGET_SCORE,
+  roundTimeSeconds: RoundTimeSeconds = DEFAULT_ROUND_TIME_SECONDS,
 ): GameState {
   return {
     status: "waiting",
@@ -21,6 +23,7 @@ export function createInitialGameState(
     round: null,
     vote: null,
     targetScore,
+    roundTimeSeconds,
     hostPlayerId: null,
     nextRoundStartsAt: null,
     createdAt: Date.now(),
@@ -97,6 +100,7 @@ export function toPublicGameState(state: GameState): PublicGameState {
     round: state.round ? toPublicRoundState(state.round) : null,
     vote: state.vote ? toPublicVoteState(state.vote) : null,
     targetScore: state.targetScore,
+    roundTimeSeconds: state.roundTimeSeconds,
     hostPlayerId: state.hostPlayerId,
     nextRoundStartsAt: state.nextRoundStartsAt,
   };

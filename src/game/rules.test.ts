@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { HIRAGANA_BASE } from "./constants";
 import {
   countHiraganaChars,
+  END_HIRAGANA_WEIGHTS,
   isHiraganaWord,
   isLastCharMatch,
   isStructurallyValidAnswer,
@@ -71,6 +73,13 @@ describe("word rules", () => {
     expect(isLastCharMatch("ゆ", "ゃ")).toBe(false);
   });
 
+  it("allows long vowel marks after the final condition character", () => {
+    expect(isLastCharMatch("ら", "ー", "ら")).toBe(true);
+    expect(isLastCharMatch("ゆ", "ー", "ゆ")).toBe(true);
+    expect(isLastCharMatch("ん", "ー", "ん")).toBe(true);
+    expect(isLastCharMatch("ら", "ー", "り")).toBe(false);
+  });
+
   it("accepts words that end with the small variant of the final condition", () => {
     expect(
       isStructurallyValidAnswer({
@@ -86,5 +95,43 @@ describe("word rules", () => {
         endChar: "ゆ",
       }),
     ).toBe(true);
+  });
+
+  it("accepts words that end with the final condition followed by a long vowel mark", () => {
+    expect(
+      isStructurallyValidAnswer({
+        word: "かばん",
+        startChar: "か",
+        endChar: "ん",
+      }),
+    ).toBe(true);
+    expect(
+      isStructurallyValidAnswer({
+        word: "からー",
+        startChar: "か",
+        endChar: "ら",
+      }),
+    ).toBe(true);
+    expect(
+      isStructurallyValidAnswer({
+        word: "かばんー",
+        startChar: "か",
+        endChar: "ん",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps n out of start-character candidates but includes it for end-character weights", () => {
+    expect(HIRAGANA_BASE).not.toContain("ん");
+    expect(END_HIRAGANA_WEIGHTS.map((item) => item.char)).toContain("ん");
+  });
+
+  it("defines positive end-character weights for all end candidates", () => {
+    const weightedChars = END_HIRAGANA_WEIGHTS.map((item) => item.char);
+    const expectedEndChars = [...HIRAGANA_BASE, "ん"];
+
+    expect(new Set(weightedChars)).toEqual(new Set(expectedEndChars));
+    expect(weightedChars).toHaveLength(expectedEndChars.length);
+    expect(END_HIRAGANA_WEIGHTS.every((item) => item.weight > 0)).toBe(true);
   });
 });

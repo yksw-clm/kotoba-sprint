@@ -11,7 +11,17 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { PublicGameState, PublicPlayerState } from "../game/types";
+import {
+  ALLOWED_ROUND_TIME_SECONDS,
+  MAX_TARGET_SCORE,
+  MIN_TARGET_SCORE,
+} from "../game/constants";
+import type {
+  GameSettings,
+  PublicGameState,
+  PublicPlayerState,
+  RoundTimeSeconds,
+} from "../game/types";
 import type { ServerMessage } from "../websocket/messages";
 
 type ConnectionPhase = "name" | "creating_room" | "connecting" | "joined";
@@ -163,7 +173,7 @@ export function App() {
         <WaitingScreen
           state={state}
           isHost={isHost}
-          onStart={() => send({ type: "start_game" })}
+          onStart={(settings) => send({ type: "start_game", settings })}
         />
       </Shell>
     );
@@ -241,11 +251,24 @@ function WaitingScreen({
 }: {
   state: PublicGameState;
   isHost: boolean;
-  onStart: () => void;
+  onStart: (settings: GameSettings) => void;
 }) {
+  const [targetScore, setTargetScore] = useState(state.targetScore);
+  const [roundTimeSeconds, setRoundTimeSeconds] = useState<RoundTimeSeconds>(
+    state.roundTimeSeconds,
+  );
   const connectedCount = state.players.filter((player) => player.connected).length;
-  const canStart = isHost && connectedCount >= 2;
+  const targetScoreIsValid =
+    Number.isInteger(targetScore) &&
+    targetScore >= MIN_TARGET_SCORE &&
+    targetScore <= MAX_TARGET_SCORE;
+  const canStart = isHost && connectedCount >= 2 && targetScoreIsValid;
   const shareUrl = window.location.href;
+
+  useEffect(() => {
+    setTargetScore(state.targetScore);
+    setRoundTimeSeconds(state.roundTimeSeconds);
+  }, [state.targetScore, state.roundTimeSeconds]);
 
   return (
     <div className="stack">
@@ -262,6 +285,51 @@ function WaitingScreen({
 
       <PlayerList players={state.players} hostPlayerId={state.hostPlayerId} />
 
+      <section className="settingsPanel" aria-label="ゲーム設定">
+        <div className="settingsHeader">
+          <span className="eyebrow">設定</span>
+          <strong>
+            目標 {isHost ? targetScore : state.targetScore}点 / 1R{" "}
+            {isHost ? roundTimeSeconds : state.roundTimeSeconds}秒
+          </strong>
+        </div>
+        <label className="settingField" htmlFor="targetScore">
+          勝利得点
+          <input
+            id="targetScore"
+            type="number"
+            min={MIN_TARGET_SCORE}
+            max={MAX_TARGET_SCORE}
+            step={1}
+            value={isHost ? targetScore : state.targetScore}
+            disabled={!isHost}
+            onChange={(event) => {
+              const nextScore = Number.parseInt(event.currentTarget.value, 10);
+              setTargetScore(Number.isNaN(nextScore) ? MIN_TARGET_SCORE : nextScore);
+            }}
+          />
+        </label>
+        <div className="settingField">
+          <span>制限時間</span>
+          <div className="segmentedControl" role="group" aria-label="1ラウンドごとの制限時間">
+            {ALLOWED_ROUND_TIME_SECONDS.map((seconds) => {
+              const selected = (isHost ? roundTimeSeconds : state.roundTimeSeconds) === seconds;
+              return (
+                <button
+                  className={selected ? "segmentButton selected" : "segmentButton"}
+                  key={seconds}
+                  type="button"
+                  disabled={!isHost}
+                  onClick={() => setRoundTimeSeconds(seconds)}
+                >
+                  {seconds}秒
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <div className="actionBand">
         <button
           className="secondaryButton"
@@ -271,7 +339,12 @@ function WaitingScreen({
           <Copy size={18} aria-hidden="true" />
           URLコピー
         </button>
-        <button className="primaryButton" type="button" disabled={!canStart} onClick={onStart}>
+        <button
+          className="primaryButton"
+          type="button"
+          disabled={!canStart}
+          onClick={() => onStart({ targetScore, roundTimeSeconds })}
+        >
           <Play size={18} aria-hidden="true" />
           開始
         </button>
@@ -330,6 +403,9 @@ function GameScreen({
         <div>
           <span className="eyebrow">ROUND {state.round?.roundNumber ?? 0}</span>
           <h1>{statusTitle[state.status] ?? "ゲーム中"}</h1>
+          <p className="settingsSummary">
+            目標 {state.targetScore}点 / 1R {state.roundTimeSeconds}秒
+          </p>
         </div>
         <div className="timerPill">{secondsLeft}s</div>
       </header>

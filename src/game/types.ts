@@ -1,5 +1,12 @@
 export type GameStatus = "waiting" | "playing" | "voting" | "round_result" | "finished";
 
+export type RoundTimeSeconds = 15 | 30 | 60;
+
+export type GameSettings = {
+  targetScore: number;
+  roundTimeSeconds: RoundTimeSeconds;
+};
+
 export type Player = {
   id: string;
   name: string;
@@ -55,6 +62,7 @@ export type GameState = {
   round: RoundState | null;
   vote: VoteState | null;
   targetScore: number;
+  roundTimeSeconds: RoundTimeSeconds;
   hostPlayerId: string | null;
   nextRoundStartsAt: number | null;
   createdAt: number;
@@ -104,6 +112,7 @@ export type PublicGameState = {
   round: PublicRoundState | null;
   vote: PublicVoteState | null;
   targetScore: number;
+  roundTimeSeconds: RoundTimeSeconds;
   hostPlayerId: string | null;
   nextRoundStartsAt: number | null;
 };

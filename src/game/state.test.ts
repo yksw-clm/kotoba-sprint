@@ -23,6 +23,13 @@ function player(id: string, connected = true): Player {
 }
 
 describe("game state helpers", () => {
+  it("creates default game settings", () => {
+    const state = createInitialGameState("room");
+
+    expect(state.targetScore).toBe(30);
+    expect(state.roundTimeSeconds).toBe(60);
+  });
+
   it("requires the host and two connected players to start", () => {
     const state = createInitialGameState("room");
     state.players.a = player("a");
@@ -90,6 +97,8 @@ describe("game state helpers", () => {
 
   it("resets a finished game to waiting for a rematch", () => {
     const state = createInitialGameState("room");
+    state.targetScore = 100;
+    state.roundTimeSeconds = 15;
     state.players.a = { ...player("a"), score: 30, startChar: "す", endChar: "ゆ" };
     state.players.b = { ...player("b"), score: 12, startChar: "す", endChar: "ゆ" };
     state.hostPlayerId = "a";
@@ -128,6 +137,8 @@ describe("game state helpers", () => {
     expect(state.round).toBeNull();
     expect(state.vote).toBeNull();
     expect(state.nextRoundStartsAt).toBeNull();
+    expect(state.targetScore).toBe(100);
+    expect(state.roundTimeSeconds).toBe(15);
     expect(Object.values(state.players).map((statePlayer) => statePlayer.score)).toEqual([0, 0]);
     expect(Object.values(state.players).map((statePlayer) => statePlayer.startChar)).toEqual([
       null,
